@@ -1,0 +1,19 @@
+{
+    "files.exclude": {
+        "*/**/node_modules/": true,
+        "wp-includes/": true,
+        "wp-admin/": true,
+        //"wp-*.*": true,
+        "wp-config.*": false,
+        "xmlrpc.php": true,
+        ".vscode/": true,
+        "*/**/cache/": true,
+        "*/**/uploads/": true,
+        "*/**/infinitewp/": true,
+        "*/**/.github/": true,
+        //"*/**/build/": true
+    },
+    "search.exclude": {
+        "venv/": true,
+    },
+}

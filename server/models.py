@@ -2,6 +2,33 @@ from django.db import models
 from django.forms import model_to_dict
 
 
+def get_delta_dict(model_dict_before: dict, model_dict_after: dict):
+    """
+    Returns a dictionary containing all differences between the supplied model dicts
+    (except for the ID and Model Type).
+    """
+
+    delta: dict = {}
+
+    for k in (
+        model_dict_before.keys() & model_dict_after.keys()
+    ):  # Intersection of keysets
+        v_before = model_dict_before[k]
+        v_after = model_dict_after[k]
+
+        if k in ("id", "model_type"):
+            delta[k] = v_after
+        if v_before == v_after:
+            continue
+
+        if not isinstance(v_before, dict):
+            delta[k] = v_after
+        else:
+            delta[k] = get_delta_dict(v_before, v_after)
+
+    return delta
+
+
 def create_dict(model: models.Model) -> dict:
     """
     Recursively creates a dictionary based on the supplied model and all its foreign relationships.
@@ -15,8 +42,9 @@ def create_dict(model: models.Model) -> dict:
         # Purposefully don't include user information here.
     elif model_type == InstancedEntity:
         d["entity"] = create_dict(model.entity)
-    
+
     return d
+
 
 class User(models.Model):
     username = models.CharField(unique=True, max_length=20)

@@ -1,47 +1,54 @@
-from server import models
-from server import utils
-
 import math
-import time
 import queue
+import time
+
 import packet
+from autobahn.exception import Disconnected
 from autobahn.twisted.websocket import WebSocketServerProtocol
+
+from server import models, utils
 
 
 class GameServerProtocol(WebSocketServerProtocol):
     def __init__(self):
         super().__init__()
-        self._packet_queue: queue.Queue[tuple['GameServerProtocol', packet.Packet]] = queue.Queue()
+        self._packet_queue: queue.Queue[
+            tuple["GameServerProtocol", packet.Packet]
+        ] = queue.Queue()
         self._state: callable = None
         self._state = self.LOGIN
         self._actor: models.Actor = None
         self._player_target: list[float] = None
         self._last_delta_time_checked: float = None
-        self._known_others: set['GameServerProtocol'] = set()
+        self._known_others: set["GameServerProtocol"] = set()
 
-    def PLAY(self, sender: 'GameServerProtocol', p: packet.Packet):
+    def PLAY(self, sender: "GameServerProtocol", p: packet.Packet):
         if p.action == packet.Action.Chat:
             if sender == self:
                 self.broadcast(p, exclude_self=True)
             else:
                 self.send_client(p)
-        elif p.action == packet.Action.ModelData:
+        elif p.action == packet.Action.ModelDelta:
             self.send_client(p)
             if sender not in self._known_others:
-                sender.onPacket(self, packet.ModelDataPacket(models.create_dict(self._actor)))
+                sender.onPacket(
+                    self, packet.ModelDeltaPacket(models.create_dict(self._actor))
+                )
                 self._known_others.add(sender)
         elif p.action == packet.Action.Target:
             self._player_target = p.payloads
 
-    def LOGIN(self, sender: 'GameServerProtocol', p: packet.Packet):
+    def LOGIN(self, sender: "GameServerProtocol", p: packet.Packet):
         if p.action == packet.Action.Login:
             username, password = p.payloads
-            if models.User.objects.filter(username=username, password=password).exists():
+            if models.User.objects.filter(
+                username=username, password=password
+            ).exists():
                 user = models.User.objects.get(username=username)
                 self._actor = models.Actor.objects.get(user=user)
 
                 self.send_client(packet.OkPacket())
-                self.broadcast(packet.ModelDataPacket(models.create_dict(self._actor)))
+                self.broadcast(packet.ModelDeltaPacket(models.create_dict(self._actor)))
                 self._state = self.PLAY
             else:
                 self.send_client(packet.DenyPacket("Username or password incorrect"))
@@ -75,11 +82,11 @@ class GameServerProtocol(WebSocketServerProtocol):
 
         # Use delta time to calculate distance to travel this time
         dist: float = 70 * delta_time
-        
+
         # Early exit if we are already within an acceptable distance of the target
         if math.dist(pos, self._player_target) < dist:
             return False
-        
+
         # Update our model if we're not already close enough to the target
         d_x, d_y = utils.direction_to(pos, self._player_target)
         self._actor.instanced_entity.x += d_x * dist
@@ -94,9 +101,15 @@ class GameServerProtocol(WebSocketServerProtocol):
             s, p = self._packet_queue.get()
             self._state(s, p)
         # To do when there are no packets to process
-        elif self._state == self.PLAY: 
+        elif self._state == self.PLAY:
+            actor_dict_before: dict = models.create_dict(self._actor)
             if self._update_position():
-                self.broadcast(packet.ModelDataPacket(models.create_dict(self._actor)))
+                actor_dict_after: dict = models.create_dict(self._actor)
+                self.broadcast(
+                    packet.ModelDeltaPacket(
+                        models.get_delta_dict(actor_dict_before, actor_dict_after)
+                    )
+                )
 
     def broadcast(self, p: packet.Packet, exclude_self: bool = False):
         for other in self.factory.players:
@@ -115,16 +128,20 @@ class GameServerProtocol(WebSocketServerProtocol):
     # Override
     def onClose(self, wasClean, code, reason):
         self.factory.players.remove(self)
-        print(f"Websocket connection closed{' unexpectedly' if not wasClean else ' cleanly'} with code {code}: {reason}")
+        print(
+            f"Websocket connection closed{' unexpectedly' if not wasClean else ' cleanly'} with code {code}: {reason}"
+        )
 
     # Override
     def onMessage(self, payload, isBinary):
-        decoded_payload = payload.decode('utf-8')
+        decoded_payload = payload.decode("utf-8")
 
         try:
             p: packet.Packet = packet.from_json(decoded_payload)
         except Exception as e:
-            print(f"Could not load message as packet: {e}. Message was: {payload.decode('utf8')}")
+            print(
+                f"Could not load message as packet: {e}. Message was: {payload.decode('utf8')}"
+            )
 
         self.onPacket(self, p)
 
@@ -133,12 +150,17 @@ class GameServerProtocol(WebSocketServerProtocol):
         if self._actor:
             self._actor.save()
         self.factory.players.remove(self)
-        print(f"Websocket connection closed{' unexpectedly' if not wasClean else ' cleanly'} with code {code}: {reason}")
+        print(
+            f"Websocket connection closed{' unexpectedly' if not wasClean else ' cleanly'} with code {code}: {reason}"
+        )
 
-    def onPacket(self, sender: 'GameServerProtocol', p: packet.Packet):
+    def onPacket(self, sender: "GameServerProtocol", p: packet.Packet):
         self._packet_queue.put((sender, p))
         print(f"Queued packet: {p}")
 
     def send_client(self, p: packet.Packet):
         b = bytes(p)
-        self.sendMessage(b)
+        try:
+            self.sendMessage(b)
+        except Disconnected:
+            print(f"Couldn't send {p} because client disconnected.")

@@ -13,21 +13,33 @@ var _player_target: Vector2
 
 var speed: float = 70.0
 var initialised_position: bool = false
+var rubber_band_radius: float = 200
 
 func update(new_model: Dictionary):
 	.update(new_model)
 	
-	var ientity = new_model["instanced_entity"]
-	server_position = Vector2(float(ientity["x"]), float(ientity["y"]))
-	if not initialised_position:
-		initialised_position = true
-		body.position = server_position
-		if is_player:
-			_player_target = server_position
-	actor_name = ientity["entity"]["name"]
-	
-	if label:
-		label.text = actor_name
+	if new_model.has("instanced_entity"):
+		var ientity = new_model["instanced_entity"]
+		
+		if ientity.has("x") and ientity.has("y"):
+			server_position = Vector2(float(ientity["x"]), float(ientity["y"]))
+			
+			if not initialised_position:
+				initialised_position = true
+				body.position = server_position
+				if is_player:
+					_player_target = server_position
+			elif (body.position - server_position).length() > rubber_band_radius:
+				# Rubber band if body position too far away from server position
+				body.position = server_position
+			
+		if ientity.has("entity"):
+			var entity = ientity["entity"]
+			if entity.has("name"):
+				actor_name = ientity["entity"]["name"]
+		
+				if label:
+					label.text = actor_name
 
 func _physics_process(delta):
 	if not body:

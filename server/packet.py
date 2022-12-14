@@ -8,7 +8,7 @@ class Action(enum.Enum):
     Deny = enum.auto()
     Login = enum.auto()
     Register = enum.auto()
-    ModelData = enum.auto()
+    ModelDelta = enum.auto()
     Target = enum.auto()
 
 
@@ -74,9 +74,9 @@ class RegisterPacket(Packet):
     def __init__(self, username: str, password: str):
         super().__init__(Action.Register, username, password)
 
-class ModelDataPacket(Packet):
+class ModelDeltaPacket(Packet):
     def __init__(self, model_data: dict):
-        super().__init__(Action.ModelData, model_data)
+        super().__init__(Action.ModelDelta, model_data)
 
 class TargetPacket(Packet):
     def __init__(self, t_x: float, t_y: float):

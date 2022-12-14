@@ -3,12 +3,15 @@ extends Control
 
 onready var chat_log = get_node("CanvasLayer/VBoxContainer/RichTextLabel")
 onready var input_field = get_node("CanvasLayer/VBoxContainer/HBoxContainer/LineEdit")
+onready var button = get_node("CanvasLayer/VBoxContainer/HBoxContainer/Button")
+
 
 signal message_sent(message)
 
 
 func _ready():
 	input_field.connect("text_entered", self, "text_entered")
+	button.connect("pressed", self, "button_pressed")
 
 func _input(event: InputEvent):
 	if event is InputEventKey and event.pressed:
@@ -20,6 +23,9 @@ func _input(event: InputEvent):
 
 func add_message(username: String, text: String):
 	chat_log.bbcode_text += username + ' says: "' + text + '"\n'
+	
+func button_pressed():
+	text_entered(input_field.text)
 
 func text_entered(text: String):
 	if len(text) > 0:

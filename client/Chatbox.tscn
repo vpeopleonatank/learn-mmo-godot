@@ -13,10 +13,12 @@ script = ExtResource( 1 )
 anchor_top = 0.67
 anchor_right = 1.0
 anchor_bottom = 1.0
+mouse_filter = 2
 
 [node name="RichTextLabel" type="RichTextLabel" parent="CanvasLayer/VBoxContainer"]
 margin_right = 1024.0
 margin_bottom = 170.0
+mouse_filter = 2
 size_flags_vertical = 3
 scroll_following = true
 
@@ -33,6 +35,11 @@ text = "[SAY]:"
 
 [node name="LineEdit" type="LineEdit" parent="CanvasLayer/VBoxContainer/HBoxContainer"]
 margin_left = 39.0
-margin_right = 1024.0
+margin_right = 1008.0
 margin_bottom = 24.0
 size_flags_horizontal = 3
+
+[node name="Button" type="Button" parent="CanvasLayer/VBoxContainer/HBoxContainer"]
+margin_left = 1012.0
+margin_right = 1024.0
+margin_bottom = 24.0

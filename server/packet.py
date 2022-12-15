@@ -71,8 +71,8 @@ class LoginPacket(Packet):
         super().__init__(Action.Login, username, password)
 
 class RegisterPacket(Packet):
-    def __init__(self, username: str, password: str):
-        super().__init__(Action.Register, username, password)
+    def __init__(self, username: str, password: str, avatar_id: int):
+        super().__init__(Action.Register, username, password, avatar_id)
 
 class ModelDeltaPacket(Packet):
     def __init__(self, model_data: dict):

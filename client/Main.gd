@@ -32,9 +32,9 @@ func _handle_login_button(username: String, password: String):
 	var p: Packet = Packet.new("Login", [username, password])
 	_network_client.send_packet(p)
 
-func _handle_register_button(username: String, password: String):
+func _handle_register_button(username: String, password: String, avatar_id: int):
 	state = funcref(self, "REGISTER")
-	var p: Packet = Packet.new("Register", [username, password])
+	var p: Packet = Packet.new("Register", [username, password, avatar_id])
 	_network_client.send_packet(p)
 
 func send_chat(text: String):

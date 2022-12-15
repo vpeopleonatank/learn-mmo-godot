@@ -14,6 +14,10 @@ config/name="client-mmo"
 run/main_scene="res://Main.tscn"
 config/icon="res://icon.png"
 
+[global]
+
+main=false
+
 [gui]
 
 common/drop_mouse_on_gui_input_disabled=true
